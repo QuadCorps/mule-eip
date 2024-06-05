@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracing="http://www.mulesoft.org/schema/mule/tracing" xmlns:aggregators="http://www.mulesoft.org/schema/mule/aggregators"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/aggregators http://www.mulesoft.org/schema/mule/aggregators/current/mule-aggregators.xsd
+http://www.mulesoft.org/schema/mule/tracing http://www.mulesoft.org/schema/mule/tracing/current/mule-tracing.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="0ebaec27-e02e-408d-82b6-e006ceeb5cb9" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="mule-main-flow" doc:id="6ceed5fd-e4e5-49f9-96e2-1def07974eb4" >
+		<http:listener doc:name="Trigger Flow" doc:id="64ab6eb2-48d6-4242-a32e-1e2070ab62d4" config-ref="HTTP_Listener_config" path="/"/>
+		<set-payload value="#[[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]]" doc:name="Set Shipment IDs" doc:id="6a5bc436-ab9f-469b-af0c-9a834e28e471" />
+		<set-variable value="#[sizeOf(payload)]" doc:name="Store groupSize" doc:id="2e6f952c-e61a-469c-9fc0-6e493992ec97" variableName="groupSize"/>
+		<foreach doc:name="Split Messages" doc:id="603f2345-4369-4fca-87cb-c70559e3c116" >
+			<flow-ref doc:name="mule-aggregator-subflow" doc:id="993b0828-5f04-4638-aac0-1a7485cd2b4a" name="mule-aggregator-subflow" />
+		</foreach>
+		<set-payload value="#[vars.shipment]" doc:name="Set shipment response" doc:id="a57035ca-0582-47f7-8b95-09ad5653a713" />
+	</flow>
+	
+	<sub-flow name="mule-aggregator-subflow" doc:id="506e1213-f4db-45ff-ab76-1f6bb76ddbad" >
+		<ee:transform doc:name="Create package entity" doc:id="7740ecfb-ea51-4522-ba2e-4aaec2ceae10" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	package: {
+		packageId: payload,
+		tax: (3 + (random() * 100)) as String {format: ".##"},
+		deliverOption: if ((payload mod 2) == 0)  "24" else "48"
+	} 
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<aggregators:group-based-aggregator doc:name="Aggregate packages" doc:id="4f74e284-c4f2-44a6-83d2-68c2c3b8276b" name="package-aggregator" groupSize="#[vars.groupSize]" evictionTime="0">
+			<aggregators:aggregation-complete >
+				<ee:transform doc:name="Create Shipment" doc:id="e5ac66f9-1bcc-47c9-9485-74f188d6b8e1" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	shipment: {
+		shipmentId: "457898765",
+		trackingId: "34567-98765467-8765",
+		packages: payload.package
+	}
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<set-variable value="#[payload]" doc:name="Store Aggregated Content" doc:id="d6947765-a3fa-47e4-8a50-2c572d133eb9" variableName="shipment"/>
+			</aggregators:aggregation-complete>
+		</aggregators:group-based-aggregator>
+	</sub-flow>
+</mule>
