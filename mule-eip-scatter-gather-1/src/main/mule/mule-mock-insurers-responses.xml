@@ -43,7 +43,7 @@ output application/json
   "deliveryAddress": "456 Elm St, Othertown, USA",
   "estimatedDeliveryDays": 3,
   "shipment": {
-    "fee": 10.00,
+    "fee": "10.00",
     "method": "24hr"
   },
   "quoteNumber": "Q987654"
