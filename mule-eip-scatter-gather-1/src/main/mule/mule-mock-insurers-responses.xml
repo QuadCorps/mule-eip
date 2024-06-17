@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	
+
+<flow name="mule-eip-carrier1-flow" doc:id="1e3bb710-4acc-470b-a754-84139f5aff54" >
+		<http:listener doc:name="Listener" doc:id="28d1f5b6-d992-4b73-935d-d4dedb9de883" config-ref="HTTP_Listener_config" path="carrier1"/>
+		<ee:transform doc:name="Set carrier response" doc:id="e92b8528-7cea-4a0c-ae02-3ae00cf2c39f" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "carrier": "SwiftShip Logistics",
+  "customerName": "John Doe",
+  "destinationAddress": "123 Main St, Anytown, USA",
+  "estimatedDelivery": "2024-06-15",
+  "shippingDetails": {
+    "cost": 15.00,
+    "service": "24hr"
+  },
+  "quoteId": "Q123456"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="mule-eip-carrier2-flow" doc:id="ef042e5c-a927-471d-ab2e-6e07b22f0d63">
+		<http:listener doc:name="Listener" doc:id="de258e3b-0845-4189-8ca1-9f3d9ce59380" config-ref="HTTP_Listener_config" path="carrier2" />
+		<ee:transform doc:name="Set carrier response" doc:id="da6ed890-e088-4d53-b46d-d57edc97dc31" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+
+---
+{
+  "carrier": "RapidParcel Express",
+  "recipient": "Alice Johnson",
+  "deliveryAddress": "456 Elm St, Othertown, USA",
+  "estimatedDeliveryDays": 3,
+  "shipment": {
+    "fee": 10.00,
+    "method": "24hr"
+  },
+  "quoteNumber": "Q987654"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="mule-eip-carrier3-flow" doc:id="afd5b0d1-9539-42d0-aebc-c6b02f45529c" >
+		<http:listener doc:name="Listener" doc:id="f8a08582-f6b5-4307-b625-6e0bf2c24a3e" config-ref="HTTP_Listener_config" path="carrier3" />
+		<ee:transform doc:name="Set carrier response" doc:id="89dd0426-3bb7-402a-834d-1738b9c2fda3" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+---
+{
+  CarrierResponse: {
+    CarrierName: "NextDay Couriers",
+    RecipientName: "Jane Smith",
+    DeliveryAddress: "789 Oak St, Sometown, USA",
+    DeliveryEstimate: "2024-06-17",
+    Shipping: {
+      ShippingCost: 20.50,
+      ShippingService: "48hr"
+    },
+    QuoteReference: "Q987654321"
+  }
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>	
+	
+</mule>

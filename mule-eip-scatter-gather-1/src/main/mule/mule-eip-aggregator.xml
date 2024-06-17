@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracing="http://www.mulesoft.org/schema/mule/tracing" xmlns:aggregators="http://www.mulesoft.org/schema/mule/aggregators"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/aggregators http://www.mulesoft.org/schema/mule/aggregators/current/mule-aggregators.xsd
+http://www.mulesoft.org/schema/mule/tracing http://www.mulesoft.org/schema/mule/tracing/current/mule-tracing.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="0ebaec27-e02e-408d-82b6-e006ceeb5cb9" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="cab68cb8-d54a-4ae2-b9e0-2fbccb1a53bf" >
+		<http:request-connection host="localhost" port="8081" />
+	</http:request-config>
+	<flow name="mule-get-best-quote-main-flow" doc:id="6ceed5fd-e4e5-49f9-96e2-1def07974eb4" >
+		<http:listener doc:name="Trigger Flow" doc:id="64ab6eb2-48d6-4242-a32e-1e2070ab62d4" config-ref="HTTP_Listener_config" path="/"/>
+		<scatter-gather doc:name="Scatter-Gather" doc:id="3d9c55f6-9572-4350-b037-7ed3d2fb9cca" >
+			<route >
+				<flow-ref doc:name="call-carrier1-subflow" doc:id="4f40253c-a09f-4b3b-9b99-5b73e8fa735d" name="call-carrier1-subflow"/>
+			</route>
+			<route >
+				<flow-ref doc:name="call-carrier2-subflow" doc:id="328555b3-d087-4ae5-bb90-98279ae0c767" name="call-carrier2-subflow"/>
+			</route>
+			<route >
+				<flow-ref doc:name="call-carrier3-subflow" doc:id="ecf1c695-b376-4642-af3a-1cd5d8523fcf" name="call-carrier3-subflow"/>
+			</route>
+		</scatter-gather>
+		<ee:transform doc:name="Select cheapest carrier" doc:id="0de81a20-2e03-46cf-9edb-a6d0e29fff97" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload..payload minBy $.cost]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Log cheapest carrier" doc:id="142a4da9-9a36-47f8-95d8-e4c25d49b0ba" message="#['Carrier ' ++ payload.carrier ++ ' has the cheapest service at £' ++ payload.cost]"/>
+	</flow>
+	<sub-flow name="call-carrier1-subflow" doc:id="3293d37f-c5e4-4482-9ea0-22d28cab5bcf" >
+		<http:request method="GET" doc:name="GET /carrier1" doc:id="ead5ef11-0b56-4055-9769-88c1e05c6a8c" config-ref="HTTP_Request_configuration" path="carrier1"/>
+		<ee:transform doc:name="Map to canonical response" doc:id="f482ea76-22ac-44fe-8d54-90338f004f51" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	carrier: payload.carrier,
+	cost: payload.shippingDetails.cost,
+	service: if(payload.shippingDetails.service == "24hr") "24" else "48" 
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="dce60df2-164f-4a7f-be4a-a5ebc3675eb4" message="#[payload]"/>
+	</sub-flow>
+	<sub-flow name="call-carrier2-subflow" doc:id="2e541ba1-c83b-4dc2-8123-ac9ea2a0c19c" >
+		<http:request method="GET" doc:name="GET /carrier2" doc:id="410d42d2-6c05-4904-9842-1ed148114d67" config-ref="HTTP_Request_configuration" path="carrier2"/>
+		<ee:transform doc:name="Map to canonical response" doc:id="cf978b10-04d8-457b-8828-060c6060c982" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	carrier: payload.carrier,
+	cost: payload.shipment.fee as Number,
+	service: if(payload.shipment.method == "24hr") "24" else "48" 
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="cdc6ae75-0878-4ef1-9090-cf4bdf5c9e6e" message="#[payload]" />
+	</sub-flow>
+	<sub-flow name="call-carrier3-subflow" doc:id="cd6b82f1-4441-4d6e-a3ec-129578ee8341" >
+		<http:request method="GET" doc:name="GET /carrier3" doc:id="32938556-69bb-4713-8191-68cb2b9e6bc9" config-ref="HTTP_Request_configuration" path="carrier3"/>
+		<ee:transform doc:name="Map to canonical response" doc:id="2cc44994-6829-4765-8d90-7f50fd552517" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+
+{
+	carrier: payload.CarrierResponse.CarrierName,
+	cost: payload.CarrierResponse.Shipping.ShippingCost as Number,
+	service: if(payload.CarrierResponse.Shipping.ShippingService == "24hr") "24" else "48" 
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="c08a7614-d016-42e6-8356-ce4686ca0bc5" message="#[payload]" />
+	</sub-flow>
+
+</mule>
