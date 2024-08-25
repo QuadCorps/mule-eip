@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp" xmlns:aggregators="http://www.mulesoft.org/schema/mule/aggregators"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/aggregators http://www.mulesoft.org/schema/mule/aggregators/current/mule-aggregators.xsd
+http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/current/mule-amqp.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	
+
+	<flow name="send-request-for-quotes-flow" doc:id="242012ae-49f0-4d95-8300-828a75824357" >
+		<http:listener doc:name="HTTP trigger" doc:id="ec2e52a1-fa81-4865-a038-2df3abb54edc" config-ref="HTTP_Listener_config" path="trigger"/>
+		<set-payload value="#['My test payload']" doc:name="Set dummy quote request payload" doc:id="e9c21b4a-94be-4f3e-9ac8-1cc06432422a" />
+		<amqp:publish doc:name="Publish to carriers exchange" doc:id="75c1a8fe-41dd-485a-94db-7c1e293c6af5" config-ref="AMQP_Config" exchangeName="carriers">
+			<amqp:message >
+				<amqp:properties replyTo="response-queue" correlationId="#[correlationId]"/>
+			</amqp:message>
+		</amqp:publish>
+	</flow>
+	<flow name="quote-decision-flow" doc:id="30330fbe-601e-41a9-a76b-5a4f18afda5c" >
+		<aggregators:aggregator-listener doc:name="Aggregator listener" doc:id="b6409b5c-7d42-4555-bbc0-50748d00fbc6" aggregatorName="carrier-quote-aggregator" includeTimedOutGroups="true"/>
+		<ee:transform doc:name="Select cheapest carrier" doc:id="b8f60d89-dba8-4196-9b4b-6388776396ad" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload minBy $.cost]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Log cheapest carrier" doc:id="5adc5a09-504c-4ed3-ac0d-6cccfed6ae43" message="#[payload]"/>
+	</flow>
+	<flow name="reply-queue-aggregator-flow" doc:id="3941b674-8fde-4339-bc5c-e4ad979092f6" >
+		<amqp:listener doc:name="Listener" doc:id="f8bfd34a-118e-4ec0-bb38-290c75d08382" config-ref="AMQP_Config" queueName="response-queue" ackMode="AUTO"/>
+		
+		<logger level="INFO" doc:name="Log carrier response" doc:id="afed5095-08a1-425c-ae7d-ae3dd94476ca" message='#["RESPONSE QUEUE RECEIVED: " ++ payload.^raw]'/>
+	
+		<aggregators:group-based-aggregator doc:name="Group based aggregator" doc:id="b31c00cd-959c-4c82-a6ed-596ffee2a6e3" name="carrier-quote-aggregator" timeout="20" groupSize="2">
+			<aggregators:aggregation-complete >
+				<logger level="INFO" doc:name="Logger" doc:id="f20fef83-bd10-411e-be40-e834e66c3c11" message="#['AGGREGATION COMPLETE FOR ' ++ correlationId]"/>
+			</aggregators:aggregation-complete>
+		</aggregators:group-based-aggregator>
+	</flow>	
+	
+</mule>

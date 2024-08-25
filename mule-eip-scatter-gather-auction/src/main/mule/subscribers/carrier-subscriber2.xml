@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/current/mule-amqp.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+	
+	<flow name="subscriber2Flow" doc:id="507bd29f-ae3f-4ad2-a92b-452c11db3749" >
+		<amqp:listener doc:name="Listener" doc:id="c9d4501d-1826-497e-b71e-50197378389b" config-ref="AMQP_Config" queueName="rapidparcel" ackMode="AUTO"/>
+		<logger level="INFO" doc:name="Logger" doc:id="de097f5b-94db-4f5b-a37c-3358af6ca621" message='#["QUEUE2 RECEIVED: " ++ payload.^raw]'/>
+		<logger level="INFO" doc:name="Logger" doc:id="7c9a8f81-d70b-4096-90ff-5796b5a82c28" message="#[attributes.properties.replyTo]"/>
+		<logger level="INFO" doc:name="Logger" doc:id="9fa52a82-ea76-4fca-962d-b5f570d93381" message="#[attributes.properties.correlationId]"/>
+		<logger level="INFO" doc:name="Logger" doc:id="89f233c7-3d52-4f5d-a539-3627c243eb4d" message="#[correlationId]"/>
+		<ee:transform doc:name="Transform Message" doc:id="cb4d0c2f-76ce-47df-acaa-c0bcddb57d25">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	carrier: "rapidparcel",
+	cost: 5,
+	service: "48"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<amqp:publish doc:name="Publish" doc:id="a101364d-09db-4f87-a418-30138851b5c5" config-ref="AMQP_Config"/>
+	</flow>
+</mule>

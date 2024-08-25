@@ -3,11 +3,11 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>com.quadcorps</groupId>
-	<artifactId>mule-eip-aggregator-basic</artifactId>
+	<artifactId>mv </artifactId>
 	<version>1.0.0-SNAPSHOT</version>
 	<packaging>mule-application</packaging>
 
-	<name>mule-eip-aggregator-basic</name>
+	<name>mule-eip-scatter-gather-disribution</name>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
