@@ -4,7 +4,7 @@ services:
     rabbit:
         container_name: rabbit-carrier
         image:
-            rabbitmq:3.13-management-carriers
+            rabbitmq:3.13-management
 
         volumes:
             - ./rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
